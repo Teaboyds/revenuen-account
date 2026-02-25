@@ -1,4 +1,7 @@
-use revenue_service::config::config_loader::load;
+use revenue_service::{
+    config::config_loader::load,
+    infrastructure::postgres::postgres_connection::establish_connection,
+};
 use tracing::{error, info};
 
 #[tokio::main]
@@ -7,7 +10,7 @@ async fn main() {
         .with_max_level(tracing::Level::DEBUG)
         .init();
 
-    let _ = match load() {
+    let env = match load() {
         Ok(env) => env,
         Err(e) => {
             error!("Failed to load env {:?}", e);
@@ -16,4 +19,14 @@ async fn main() {
     };
 
     info!("ENV has been loaded");
+
+    let _ = match establish_connection(&env.database.url).await {
+        Ok(pool) => pool,
+        Err(e) => {
+            error!("Failed to connected database {:?}", e);
+            std::process::exit(1)
+        }
+    };
+
+    info!("Establish Database Successfully");
 }
